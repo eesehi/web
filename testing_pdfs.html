@@ -1,0 +1,117 @@
+<html>
+    <head>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.13.216/pdf.min.js"></script>
+        <style>
+            table, th, td {
+              border: 1px solid;
+            }
+        </style>
+        <title>Testing PDFs</title>
+    </head>
+    <body>
+        <input id="pdffile" name="pdffile" type="file" multiple/>
+        <table id="myTable" style="margin: 10px auto; border-collapse: collapse;"></table>
+        </div>
+    </body>
+</html>
+
+<script>
+
+    function addRow(text) {
+        var table = document.getElementById("myTable")
+        var row = table.insertRow(0)
+        var cell1 = row.insertCell(0)
+        var cell2 = row.insertCell(1)
+        cell1.innerHTML = "testing"
+        cell2.innerHTML = text
+    }
+
+    function Pdf2TextClass(){
+        var self = this;
+        this.complete = 0;
+    
+        this.pdfToText = function(data, callbackPageDone, callbackAllDone){
+        console.assert( data  instanceof ArrayBuffer  || typeof data == 'string' );
+        var loadingTask = pdfjsLib.getDocument(data);
+        loadingTask.promise.then(function(pdf) {
+    
+    
+        var total = pdf._pdfInfo.numPages;
+        //callbackPageDone( 0, total );        
+        var layers = {};        
+        for (i = 1; i <= total; i++){
+           pdf.getPage(i).then( function(page){
+           var n = page.pageNumber;
+           page.getTextContent().then( function(textContent){
+           
+           //console.log(textContent.items[0]);0
+             if( null != textContent.items ){
+               var page_text = "";
+               var last_block = null;
+               for( var k = 0; k < textContent.items.length; k++ ){
+                   var block = textContent.items[k];
+                   if( last_block != null && last_block.str[last_block.str.length-1] != ' '){
+                       if( block.x < last_block.x )
+                           page_text += "\r\n"; 
+                       else if ( last_block.y != block.y && ( last_block.str.match(/^(\s?[a-zA-Z])$|^(.+\s[a-zA-Z])$/) == null ))
+                           page_text += ' ';
+                   }
+                   page_text += block.str;
+                   last_block = block;
+               }
+    
+               textContent != null && console.log("page " + n + " finished."); //" content: \n" + page_text);
+               layers[n] =  page_text + "\n\n";
+             }
+             ++ self.complete;
+             //callbackPageDone( self.complete, total );
+             if (self.complete == total){
+               window.setTimeout(function(){
+                 var full_text = "";
+                 var num_pages = Object.keys(layers).length;
+                 for( var j = 1; j <= num_pages; j++)
+                     full_text += layers[j] ;
+                     callbackAllDone(full_text);
+               }, 1000);              
+             }
+           }); // end  of page.getTextContent().then
+         }); // end of page.then
+       } // of for
+     });
+    }; // end of pdfToText()
+    }; // end of class
+
+    var pdff = new Pdf2TextClass();
+
+    function get_ext(name) {
+        return name.split('.').pop()
+    }
+
+    function readpdffiles(files) {
+        Object.keys(files).forEach(i => {
+          const file = files[i];
+          var name = file.name
+          if(get_ext(name).toLowerCase()=='pdf'){
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                //server call for uploading or reading the files one-by-one
+                //by using 'reader.result' or 'file'
+                //console.log(reader.result)
+                pdff.pdfToText(reader.result,null,(text)=>{
+                    console.log(text)
+                })
+            }
+            reader.readAsDataURL(file);
+          }
+        })
+      };
+
+    
+    pdffile.addEventListener('change',()=>{
+        let files=document.getElementById('pdffile').files
+        if(files.length==0) return
+        console.log(files)
+        readpdffiles(files)
+    })
+        </script>
+</script>
