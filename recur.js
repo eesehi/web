@@ -17,7 +17,9 @@ async function opendir(){
             console.log(entry.kind)
             if(entry.kind === 'file'){
                 const f  =(await dirHandle.getFileHandle(entry.name));
-               imageFinder(await f.getFile());
+                var ext=get_ext(entry.name).toLowerCase()
+                if(ext=='jpeg' || ext=='jpg' || ext =='png' || ext=='bmp') imageFinder(await f.getFile())
+               
             }else{
                 const f = (await dirHandle.getDirectoryHandle(entry.name));
                 getfiles(f);
@@ -53,14 +55,3 @@ function addRow(name,text) {
 function get_ext(name) {
     return name.split('.').pop()
 }
-
-// input.addEventListener('change',()=>{
-//     let files=input.files
-//     if(files.length==0) return
-//     console.log(files)
-//     for (let index = 0; index < files.length; index++) {
-//         var file = files[index];
-//         var ext=get_ext(file.name).toLowerCase()
-//         if(ext=='jpeg' || ext=='jpg' || ext =='png' || ext=='bmp') imageFinder(file)
-//     }
-// })
