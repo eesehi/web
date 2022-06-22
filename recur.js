@@ -55,3 +55,12 @@ function addRow(name,text) {
 function get_ext(name) {
     return name.split('.').pop()
 }
+
+input.addEventListener('change',()=>{
+
+    const files = input.files;
+    for( i = 0;i<files.length;i++){
+        console.log("i am from input")
+        imageFinder(files[i]);
+    }
+})
