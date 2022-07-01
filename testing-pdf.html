@@ -1,0 +1,185 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testing OCR</title>
+    <script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.13.216/pdf.min.js"></script>
+</head>
+<style>
+    body{
+        text-align: center;
+        padding-top: 15vh;
+    }
+    table{
+        width: 50vw;
+        margin: 0 auto;
+    }
+    table, th, td {
+      border: 1px solid;
+      padding: 5px;
+    }
+    h1,h3{
+        display: none;
+        text-align: center;
+    }
+    #folder-name{
+        color: red;
+    }
+    #name{
+        color: orangered;
+    }
+    #filepicker{
+        display: none;
+    }
+</style>
+<body>
+   <div>
+      <label for="keyword">Enter Search Keyword</label>
+      <input type="text" id="keyword"/>
+      <input type="file" id="filepicker" name="fileList"  webkitdirectory multiple/>
+      <button onclick="openfilemanager()">Choose Directory</button>
+   </div>
+   <div>
+    <h4>Choose Multiple Pdf files from here</h4>
+    <input type="file"  id="multiplefiles" multiple />
+   </div>
+  
+   <div id="output"></div>
+   <h1> Selected Folder is <span id="folder-name"></span></h1>
+   <h3>Keyword <span id="name"></span> is present in these locations : </h3>
+   <table id="myTable" style="border-collapse: collapse;"></table>
+</body>
+
+<script>
+    const output = document.getElementById('output');
+    const filepicker = document.getElementById('filepicker');
+    const foldername = document.getElementById('folder-name');
+    const h1 = document.getElementsByTagName('h1')[0];
+    const h3 = document.getElementsByTagName('h3')[0];
+    const keyword = document.getElementById('keyword');
+    const name = document.getElementById('name');
+    const multiplefiles = document.getElementById('multiplefiles')
+
+
+    function openfilemanager(){
+        filepicker.click();
+    }
+    function addRow(path) {
+    var table = document.getElementById("myTable")
+    var row = table.insertRow(0)
+    var cell1 = row.insertCell(0)
+    cell1.innerHTML = path
+  }
+
+    function get_ext(name) {
+        return name.split('.').pop().toLowerCase();
+    } 
+
+    function get_folder_name(event)
+    {
+        var theFiles = event.target.files;
+        var relativePath = theFiles[0].webkitRelativePath;
+        var folder = relativePath.split("/");
+        return folder[0];
+    }
+
+    /*----- U Need to implement this function for different types of files -----*/
+    /* Return true when file contains the keyword Else Return false */
+
+
+    async function searchInFile(url, ext){
+        if(ext==='pdf') {
+            console.log("Reading => ",url);
+            await printData(url,null,(text)=>{
+                    console.log(text)
+                })
+        }
+    }
+
+    /* --------------------------------------------------------------------------*/
+
+
+     filepicker.addEventListener('change', (event) => {
+        h1.style.display="block"
+        h3.style.display="block"
+        name.innerText = keyword.value;
+        
+        foldername.innerText = get_folder_name(event)
+        const files = event.target.files;
+        
+        for (const file of files) {
+            let ext = get_ext(file.name)
+            if(ext==='png' || ext==='jpg' || ext==='jpeg' || ext==='docx' || ext==='pdf')
+            {
+               let url = URL.createObjectURL(file);
+               let is_present = searchInFile(url, ext);
+               if(is_present) addRow(file.webkitRelativePath)
+            }
+        }
+        });
+
+
+        multiplefiles.addEventListener('change', (event) => {
+            const files = event.target.files;
+            let size = files.length;
+            for(let i=0;i<size;i++)
+            {
+                let url = URL.createObjectURL(files[i])
+                searchInFile(url, 'pdf')
+            }
+        });
+
+        /* Give this function the blob url of any pdf file and will print all the text present in it*/
+       async function printData(data, callbackPageDone, callbackAllDone){
+
+        let complete = 0;
+        var loadingTask = await pdfjsLib.getDocument(data);
+        loadingTask.promise.then(function(pdf) {
+        var total = pdf._pdfInfo.numPages;      
+        var layers = {};        
+        for (i = 1; i <= total; i++){
+                pdf.getPage(i).then( function(page){
+                        var n = page.pageNumber;
+                        page.getTextContent().then( function(textContent){
+                            if( null != textContent.items ){
+                            var page_text = "";
+                            var last_block = null;
+                            for( var k = 0; k < textContent.items.length; k++ ){
+                                var block = textContent.items[k];
+                                if( last_block != null && last_block.str[last_block.str.length-1] != ' '){
+                                    if( block.x < last_block.x )
+                                        page_text += "\r\n"; 
+                                    else if ( last_block.y != block.y && ( last_block.str.match(/^(\s?[a-zA-Z])$|^(.+\s[a-zA-Z])$/) == null ))
+                                        page_text += ' ';
+                                }
+                                page_text += block.str;
+                                last_block = block;
+                            }
+                    
+                            
+                            layers[n] =  page_text + "\n\n";
+                            }
+                            complete++;
+                            if (complete == total){
+                                var full_text = "";
+                                var num_pages = Object.keys(layers).length;
+                                for( var j = 1; j <= num_pages; j++)
+                                {
+                                    full_text += layers[j] ;
+                                }     
+                                callbackAllDone(full_text);      
+                            }
+                        }); // end  of page.getTextContent().then
+                }); // end of page.then
+       } // of for
+     });
+    }; // end of pdfToText()
+
+
+
+
+</script>
+</html>
+
