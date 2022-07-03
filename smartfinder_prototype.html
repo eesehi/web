@@ -1,0 +1,159 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Testing OCR</title>
+    <script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
+    <script src="docToText.js"></script>
+  </head>
+  <style>
+    table,
+    th,
+    td {
+      border: 1px solid;
+    }
+  </style>
+  <body>
+    <center>
+        <input type="text" id="key" placeholder="Enter keyword"><br><br>
+        <input type="file" name="FileName" id="file_id" multiple /></center>
+    <table
+      id="myTable"
+      style="margin: 10px auto; border-collapse: collapse"
+    ></table>
+    <script>
+      let input = document.getElementById("file_id");
+      const docToText = new DocToText();
+      let keyword;
+
+      function documentFinder(file) {
+        var ext = get_ext(file.name).toLowerCase();
+        const { name } = file;
+        docToText
+          .extractToText(file, ext)
+          .then(function (text) {
+            if (kmp(text.toLowerCase(), keyword.toLowerCase()) > -1)
+              addRow(name);
+          })
+          .catch(function (error) {
+            console.log(error);
+          });
+      }
+
+      function txtReader(file) {
+        if (!file.type.includes('text')) return;
+        var fr = new FileReader();
+        fr.onload = function () {
+          text = fr.result;
+          if (kmp(text.toLowerCase(), keyword.toLowerCase()) > 0)
+            addRow(file.name);
+        };
+        fr.readAsText(file);
+      }
+
+      function imageFinder(file) {
+        Tesseract.recognize(file, "eng", {
+          logger: (m) => console.log("imageFinder ka logger"),
+        }).then(({ data: { text } }) => {
+          //console.log(text)
+          if (kmp(text.toLowerCase(), keyword.toLowerCase()) > 0)
+            addRow(file.name);
+        });
+      }
+
+      function addRow(name) {
+        var table = document.getElementById("myTable");
+        var row = table.insertRow(0);
+        var cell1 = row.insertCell(0);
+        var cell2 = row.insertCell(1);
+        cell1.innerHTML = name;
+        cell2.innerHTML = " Maalik Maalik isme '"+keyword+"' hai! ";
+      }
+
+      function get_ext(name) {
+        return name.split(".").pop();
+      }
+
+      //word -> keyword to search
+      function buildPatternTable(word) {
+        const patternTable = [0];
+        let prefixIndex = 0;
+        let suffixIndex = 1;
+
+        while (suffixIndex < word.length) {
+          if (word[prefixIndex] === word[suffixIndex]) {
+            patternTable[suffixIndex] = prefixIndex + 1;
+            suffixIndex += 1;
+            prefixIndex += 1;
+          } else if (prefixIndex === 0) {
+            patternTable[suffixIndex] = 0;
+            suffixIndex += 1;
+          } else {
+            prefixIndex = patternTable[prefixIndex - 1];
+          }
+        }
+
+        return patternTable;
+      }
+
+      let testNo=0;
+
+      //returns -1 if keyword is not found
+      function kmp(text, word) {
+        //console.log(testNo++,text,word);
+        if (word.length === 0) {
+          return 0;
+        }
+
+        let textIndex = 0;
+        let wordIndex = 0;
+
+        const patternTable = buildPatternTable(word);
+
+        while (textIndex < text.length) {
+          if (text[textIndex] === word[wordIndex]) {
+            // We've found a match.
+            if (wordIndex === word.length - 1) {
+              return textIndex - word.length + 1;
+            }
+            wordIndex += 1;
+            textIndex += 1;
+          } else if (wordIndex > 0) {
+            wordIndex = patternTable[wordIndex - 1];
+          } else {
+            // wordIndex = 0;
+            textIndex += 1;
+          }
+        }
+
+        return -1;
+      }
+
+      input.addEventListener("change", () => {
+        keyword = document.getElementById("key").value;
+        let files = input.files;
+        if (files.length == 0) return;
+        console.log(files);
+        for (let index = 0; index < files.length; index++) {
+          var file = files[index];
+          var ext = get_ext(file.name).toLowerCase();
+          if (ext == "jpeg" || ext == "jpg" || ext == "png" || ext == "bmp")
+            imageFinder(file);
+          else if (
+            ext == "doc" ||
+            ext == "docx" ||
+            ext == "xls" ||
+            ext == "xlsx" ||
+            ext == "ppt" ||
+            ext == "pptx" ||
+            ext == "pdf" ||
+            ext == "hwp"
+          )
+            documentFinder(file);
+          else txtReader(file);
+        }
+      });
+    </script>
+  </body>
+</html>
