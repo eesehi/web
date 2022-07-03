@@ -6,7 +6,6 @@ function imageFinder(file){
         'eng',
         { logger: m => console.log(m+file.name) }
       ).then(({ data: { text } }) => {
-        console.log(text)
         addRow(file.name,text)
       })
 }
