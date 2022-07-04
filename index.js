@@ -1,6 +1,7 @@
 let input = document.querySelector('input')
 var cnt=0;
 function imageFinder(file){
+    console.log(cnt);
     cnt+=1;
     if(cnt>10) return;
     Tesseract.recognize(
