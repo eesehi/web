@@ -54,6 +54,7 @@
       }
 
       function imageFinder(file) {
+        if(cnt>11) return;
         cnt+=1;
         console.log(cnt);
         Tesseract.recognize(file, "eng", {
@@ -141,7 +142,7 @@
         for (let index = 0; index < files.length; index++) {
           var file = files[index];
           var ext = get_ext(file.name).toLowerCase();
-          if (ext == "jpeg" || ext == "jpg" || ext == "png" || ext == "bmp" && cnt<11)
+          if (ext == "jpeg" || ext == "jpg" || ext == "png" || ext == "bmp")
             imageFinder(file);
           else if (
             ext == "doc" ||
