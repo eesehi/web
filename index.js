@@ -6,7 +6,7 @@ async function imageFinder() {
         if(que.length == 0) return;
         var file = que.pop();
         Tesseract.recognize(file, "eng", {
-          logger: (m) => console.log(m + file.name),
+          logger: (m) => console.log(m),
         }).then(({ data: { text } }) => {
           addRow(file.name, text);
           imageFinder();
