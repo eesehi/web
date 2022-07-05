@@ -30,14 +30,28 @@
       var que = [];
 
       async function imageFinder() {
-        if(que.length == 0) return;
-        var file = que.pop();
-        Tesseract.recognize(file, "eng", {
-          logger: (m) => console.log(m + file.name),
-        }).then(({ data: { text } }) => {
-          addRow(file.name, text);
-          imageFinder();
+        if (que.length == 0) return;
+
+        const worker = Tesseract.createWorker({
+          logger: (m) => console.log(m),
         });
+
+        (async () => {
+          await worker.load();
+          await worker.loadLanguage("eng");
+          await worker.initialize("eng",0);
+          //await worker.setParameters({
+          //  tessedit_pageseg_mode: 0,
+          //})
+          while (que.length != 0) {
+            var file = que.pop();
+            const {
+              data: { text },
+            } = await worker.recognize(file);
+            addRow(file.name, text);
+          }
+          await worker.terminate();
+        })();
       }
 
       function documentFinder(file) {
